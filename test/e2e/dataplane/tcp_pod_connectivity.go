@@ -6,6 +6,8 @@ import (
 	"github.com/submariner-io/submariner/test/e2e/tcp"
 )
 
+const basicDataplaneTimeoutMultiplier = 1
+
 var _ = Describe("[dataplane] Basic TCP connectivity tests across clusters without discovery", func() {
 	f := framework.NewDefaultFramework("dataplane-conn-nd")
 	var useService bool
@@ -13,7 +15,7 @@ var _ = Describe("[dataplane] Basic TCP connectivity tests across clusters witho
 
 	verifyInteraction := func(listenerScheduling, connectorScheduling framework.NetworkPodScheduling) {
 		It("should have sent the expected data from the pod to the other pod", func() {
-			tcp.RunConnectivityTest(f, useService, networkType, listenerScheduling, connectorScheduling, framework.ClusterB, framework.ClusterA)
+			tcp.RunConnectivityTest(f, useService, networkType, listenerScheduling, connectorScheduling, framework.ClusterB, framework.ClusterA, basicDataplaneTimeoutMultiplier)
 		})
 	}
 

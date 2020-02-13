@@ -2,14 +2,17 @@ package redundancy
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
+
 	"github.com/submariner-io/submariner/test/e2e/framework"
 	"github.com/submariner-io/submariner/test/e2e/tcp"
 )
 
-var _ = PDescribe("[redundancy] Gateway fail-over tests", func() {
+var _ = Describe("[redundancy] Gateway fail-over tests", func() {
 	f := framework.NewDefaultFramework("gateway-redundancy")
 
 	When("one gateway node is configured and the submariner engine pod fails", func() {
@@ -25,6 +28,8 @@ var _ = PDescribe("[redundancy] Gateway fail-over tests", func() {
 	})
 
 })
+
+const gatewayFailoverTimeoutMultiplier = 3
 
 func testEnginePodRestartScenario(f *framework.Framework) {
 	clusterAName := framework.TestContext.ClusterIDs[framework.ClusterA]
@@ -44,10 +49,10 @@ func testEnginePodRestartScenario(f *framework.Framework) {
 	By(fmt.Sprintf("Found new submariner engine pod %q", newEnginePod.Name))
 
 	By(fmt.Sprintf("Verifying TCP connectivity from gateway node on %q to gateway node on %q", clusterBName, clusterAName))
-	tcp.RunConnectivityTest(f, false, framework.PodNetworking, framework.GatewayNode, framework.GatewayNode, framework.ClusterA, framework.ClusterB)
+	tcp.RunConnectivityTest(f, false, framework.PodNetworking, framework.GatewayNode, framework.GatewayNode, framework.ClusterA, framework.ClusterB, gatewayFailoverTimeoutMultiplier)
 
 	By(fmt.Sprintf("Verifying TCP connectivity from non-gateway node on %q to non-gateway node on %q", clusterBName, clusterAName))
-	tcp.RunConnectivityTest(f, false, framework.PodNetworking, framework.NonGatewayNode, framework.NonGatewayNode, framework.ClusterA, framework.ClusterB)
+	tcp.RunConnectivityTest(f, false, framework.PodNetworking, framework.NonGatewayNode, framework.NonGatewayNode, framework.ClusterA, framework.ClusterB, gatewayFailoverTimeoutMultiplier)
 }
 
 func testGatewayFailOverScenario(f *framework.Framework) {
@@ -83,7 +88,17 @@ func testGatewayFailOverScenario(f *framework.Framework) {
 	// Ensure the new engine pod is started before we run the connectivity tests to eliminate possible timing issue where,
 	// after deleting the old pod, we actually run the connectivity test against the oold engine instance before k8s has
 	// a chance to react to stop the process/container etc.
-	newEnginePod := f.AwaitSubmarinerEnginePod(framework.ClusterA)
+
+	var newEnginePod *v1.Pod
+	for retries := 1; retries < 10; retries++ {
+		newEnginePod = f.AwaitSubmarinerEnginePod(framework.ClusterA)
+		if newEnginePod.Spec.NodeName == initialGatewayNode.Name {
+			time.Sleep(5 * time.Second)
+		} else {
+			break
+		}
+	}
+
 	Expect(newEnginePod.Spec.NodeName).To(Equal(initialNonGatewayNode.Name),
 		"The new engine pod is not running on the expected node")
 	By(fmt.Sprintf("Found new submariner engine pod %q", newEnginePod.Name))
@@ -94,8 +109,8 @@ func testGatewayFailOverScenario(f *framework.Framework) {
 	By(fmt.Sprintf("Found new submariner endpoint for %q: %#v", clusterAName, newSubmEndpoint))
 
 	By(fmt.Sprintf("Verifying TCP connectivity from gateway node on %q to gateway node on %q", clusterBName, clusterAName))
-	tcp.RunConnectivityTest(f, false, framework.PodNetworking, framework.GatewayNode, framework.GatewayNode, framework.ClusterA, framework.ClusterB)
+	tcp.RunConnectivityTest(f, false, framework.PodNetworking, framework.GatewayNode, framework.GatewayNode, framework.ClusterA, framework.ClusterB, gatewayFailoverTimeoutMultiplier)
 
 	By(fmt.Sprintf("Verifying TCP connectivity from non-gateway node on %q to non-gateway node on %q", clusterBName, clusterAName))
-	tcp.RunConnectivityTest(f, false, framework.PodNetworking, framework.NonGatewayNode, framework.NonGatewayNode, framework.ClusterA, framework.ClusterB)
+	tcp.RunConnectivityTest(f, false, framework.PodNetworking, framework.NonGatewayNode, framework.NonGatewayNode, framework.ClusterA, framework.ClusterB, gatewayFailoverTimeoutMultiplier)
 }

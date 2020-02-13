@@ -37,6 +37,7 @@ type NetworkPodConfig struct {
 	RemoteIP           string
 	ConnectionTimeout  uint
 	ConnectionAttempts uint
+	TimeoutMultiplier  uint
 	NetworkType        bool
 	// TODO: namespace, once https://github.com/submariner-io/submariner/pull/141 is merged
 }
@@ -68,6 +69,10 @@ func (f *Framework) NewNetworkPod(config *NetworkPodConfig) *NetworkPod {
 
 	if config.Data == "" {
 		config.Data = string(uuid.NewUUID())
+	}
+
+	if config.TimeoutMultiplier == 0 {
+		config.TimeoutMultiplier = 1
 	}
 
 	networkPod := &NetworkPod{Config: config, framework: f, TerminationCode: -1}
@@ -161,7 +166,8 @@ func (np *NetworkPod) buildTCPCheckListenerPod() {
 					Env: []v1.EnvVar{
 						{Name: "LISTEN_PORT", Value: strconv.Itoa(np.Config.Port)},
 						{Name: "SEND_STRING", Value: np.Config.Data},
-						{Name: "CONN_TIMEOUT", Value: strconv.Itoa(int(np.Config.ConnectionTimeout * np.Config.ConnectionAttempts))},
+						{Name: "CONN_TIMEOUT", Value: strconv.Itoa(int(
+							np.Config.TimeoutMultiplier * np.Config.ConnectionTimeout * np.Config.ConnectionAttempts))},
 					},
 				},
 			},
@@ -198,13 +204,23 @@ func (np *NetworkPod) buildTCPCheckConnectorPod() {
 					Image: "busybox",
 					// We send the string 50 times to put more pressure on the TCP connection and avoid limited
 					// resource environments from not sending at least some data before timeout.
-					Command: []string{"sh", "-c", "for in in $(seq 50); do echo [dataplane] connector says $SEND_STRING; done | for i in $(seq $CONN_TRIES); do if nc -v $REMOTE_IP $REMOTE_PORT -w $CONN_TIMEOUT; then break; fi; done >/dev/termination-log 2>&1"},
+					Command: []string{"sh", "-c", `
+						function msg() { for in in $(seq 50); do
+							echo [dataplane] connector says $SEND_STRING;
+							done
+						}
+						for i in $(seq $CONN_TRIES); do
+							if msg | nc -v $REMOTE_IP $REMOTE_PORT -w $CONN_TIMEOUT; then
+								break;
+							fi;
+						done >/dev/termination-log 2>&1`},
 					Env: []v1.EnvVar{
 						{Name: "REMOTE_PORT", Value: strconv.Itoa(np.Config.Port)},
 						{Name: "SEND_STRING", Value: np.Config.Data},
 						{Name: "REMOTE_IP", Value: np.Config.RemoteIP},
 						{Name: "CONN_TRIES", Value: strconv.Itoa(int(np.Config.ConnectionAttempts))},
-						{Name: "CONN_TIMEOUT", Value: strconv.Itoa(int(np.Config.ConnectionTimeout))},
+						{Name: "CONN_TIMEOUT", Value: strconv.Itoa(int(
+							np.Config.TimeoutMultiplier * np.Config.ConnectionTimeout))},
 					},
 				},
 			},

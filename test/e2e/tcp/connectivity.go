@@ -9,10 +9,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func RunConnectivityTest(f *framework.Framework, useService bool, networkType bool, listenerScheduling framework.NetworkPodScheduling, connectorScheduling framework.NetworkPodScheduling, listenerCluster framework.ClusterIndex, connectorCluster framework.ClusterIndex) (*framework.NetworkPod, *framework.NetworkPod) {
+func RunConnectivityTest(f *framework.Framework, useService bool, networkType bool, listenerScheduling framework.NetworkPodScheduling, connectorScheduling framework.NetworkPodScheduling, listenerCluster framework.ClusterIndex, connectorCluster framework.ClusterIndex, timeoutMultiplier uint) (*framework.NetworkPod, *framework.NetworkPod) {
 
 	listenerPod, connectorPod := createPods(f, useService, networkType, listenerScheduling, connectorScheduling, listenerCluster, connectorCluster,
-		framework.TestContext.ConnectionTimeout, framework.TestContext.ConnectionAttempts)
+		framework.TestContext.ConnectionTimeout, framework.TestContext.ConnectionAttempts, timeoutMultiplier)
 	listenerPod.CheckSuccessfulFinish()
 	connectorPod.CheckSuccessfulFinish()
 
@@ -33,8 +33,8 @@ func RunConnectivityTest(f *framework.Framework, useService bool, networkType bo
 	return listenerPod, connectorPod
 }
 
-func RunNoConnectivityTest(f *framework.Framework, useService bool, listenerScheduling framework.NetworkPodScheduling, connectorScheduling framework.NetworkPodScheduling, listenerCluster framework.ClusterIndex, connectorCluster framework.ClusterIndex) (*framework.NetworkPod, *framework.NetworkPod) {
-	listenerPod, connectorPod := createPods(f, useService, framework.PodNetworking, listenerScheduling, connectorScheduling, listenerCluster, connectorCluster, 5, 1)
+func RunNoConnectivityTest(f *framework.Framework, useService bool, listenerScheduling framework.NetworkPodScheduling, connectorScheduling framework.NetworkPodScheduling, listenerCluster framework.ClusterIndex, connectorCluster framework.ClusterIndex, timeoutMultiplier uint) (*framework.NetworkPod, *framework.NetworkPod) {
+	listenerPod, connectorPod := createPods(f, useService, framework.PodNetworking, listenerScheduling, connectorScheduling, listenerCluster, connectorCluster, 5, 1, timeoutMultiplier)
 
 	By("Verifying that listener pod exits with non-zero code and timed out message")
 	Expect(listenerPod.TerminationMessage).To(ContainSubstring("nc: timeout"))
@@ -49,7 +49,7 @@ func RunNoConnectivityTest(f *framework.Framework, useService bool, listenerSche
 }
 
 func createPods(f *framework.Framework, useService bool, networkType bool, listenerScheduling framework.NetworkPodScheduling, connectorScheduling framework.NetworkPodScheduling, listenerCluster framework.ClusterIndex,
-	connectorCluster framework.ClusterIndex, connectionTimeout uint, connectionAttempts uint) (*framework.NetworkPod, *framework.NetworkPod) {
+	connectorCluster framework.ClusterIndex, connectionTimeout uint, connectionAttempts uint, timeoutMultiplier uint) (*framework.NetworkPod, *framework.NetworkPod) {
 
 	By(fmt.Sprintf("Creating a listener pod in cluster %q, which will wait for a handshake over TCP", framework.TestContext.ClusterIDs[listenerCluster]))
 	listenerPod := f.NewNetworkPod(&framework.NetworkPodConfig{
@@ -58,6 +58,7 @@ func createPods(f *framework.Framework, useService bool, networkType bool, liste
 		Scheduling:         listenerScheduling,
 		ConnectionTimeout:  connectionTimeout,
 		ConnectionAttempts: connectionAttempts,
+		TimeoutMultiplier:  timeoutMultiplier,
 	})
 
 	remoteIP := listenerPod.Pod.Status.PodIP
