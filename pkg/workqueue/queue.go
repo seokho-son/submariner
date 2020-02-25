@@ -43,7 +43,7 @@ func (q *queueType) Enqueue(obj interface{}) {
 		return
 	}
 
-	klog.V(log.TRACE).Infof("%s: enqueueing key %v", q.name, key)
+	klog.V(log.TRACE).Infof("%s: enqueueing key %q for %T object", q.name, key, obj)
 	q.AddRateLimited(key)
 }
 
