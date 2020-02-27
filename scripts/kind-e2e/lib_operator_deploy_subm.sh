@@ -40,13 +40,13 @@ function deploytool_prereqs() {
 function setup_broker() {
     context=$1
     echo Installing broker on $context.
-    kubectl config use-context $context
+    use_kube_context $context
     subctl --kubeconfig ${PRJ_ROOT}/output/kind-config/dapper/kind-config-$context deploy-broker --no-dataplane
 }
 
 function subctl_install_subm() {
     context=$1
-    kubectl config use-context $context
+    use_kube_context $context
     subctl join --kubeconfig ${PRJ_ROOT}/output/kind-config/dapper/kind-config-$context \
                 --clusterid ${context} \
                 --repository ${subm_engine_image_repo} \
@@ -66,10 +66,11 @@ function install_subm_all_clusters() {
 }
 
 function deploytool_postreqs() {
+    kubectl config use-context cluster1
     # FIXME: Make this unnecessary using subctl v0.0.4 --no-label flag
     # subctl wants a gateway node labeled, or it will ask, but this script is not interactive,
     # and E2E expects cluster1 to not have the gateway configured at start, so we remove it
     del_subm_gateway_label cluster1
     # Just removing the label does not stop Subm pod.
-    kubectl --context=cluster1 delete pod -n submariner-operator -l app=submariner-engine
+    kubectl delete pod -n submariner-operator -l app=submariner-engine
 }
