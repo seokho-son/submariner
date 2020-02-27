@@ -27,9 +27,7 @@ function print_logs() {
     fi
 }
 
-function kind_clusters() {
-    status=$1
-    version=$2
+function create_kind_clusters() {
     pids=(-1 -1 -1)
     logs=()
     for i in 1 2 3; do
@@ -46,17 +44,19 @@ function kind_clusters() {
             else
                 kind create cluster --name=cluster${i} --config=${PRJ_ROOT}/scripts/kind-e2e/cluster${i}-config.yaml
             fi
+
+            kubeconfig=$(kind get kubeconfig-path --name="cluster$i")
+            sed -i -- "s/user: kubernetes-admin/user: cluster$i/g" $kubeconfig
+            sed -i -- "s/name: kubernetes-admin.*/name: cluster$i/g" $kubeconfig
+            sed -i -- "s/current-context: kubernetes-admin.*/current-context: cluster$i/g" $kubeconfig
+
             master_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' cluster${i}-control-plane | head -n 1)
-            sed -i -- "s/user: kubernetes-admin/user: cluster$i/g" $(kind get kubeconfig-path --name="cluster$i")
-            sed -i -- "s/name: kubernetes-admin.*/name: cluster$i/g" $(kind get kubeconfig-path --name="cluster$i")
-            sed -i -- "s/current-context: kubernetes-admin.*/current-context: cluster$i/g" $(kind get kubeconfig-path --name="cluster$i")
+            sed -i -- "s/server: .*/server: https:\/\/$master_ip:6443/g" $kubeconfig
 
+            cp -r $kubeconfig ${PRJ_ROOT}/output/kind-config/dapper/kind-config-cluster${i}
             if [[ ${status} = keep ]]; then
-                cp -r $(kind get kubeconfig-path --name="cluster$i") ${PRJ_ROOT}/output/kind-config/local-dev/kind-config-cluster${i}
+                cp -r $kubeconfig ${PRJ_ROOT}/output/kind-config/local-dev/kind-config-cluster${i}
             fi
-
-            sed -i -- "s/server: .*/server: https:\/\/$master_ip:6443/g" $(kind get kubeconfig-path --name="cluster$i")
-            cp -r $(kind get kubeconfig-path --name="cluster$i") ${PRJ_ROOT}/output/kind-config/dapper/kind-config-cluster${i}
         ) > ${logs[$i]} 2>&1 &
         set pids[$i] = $!
     done
@@ -282,7 +282,7 @@ if [[ $logging = true ]]; then
     enable_logging
 fi
 
-kind_clusters "$@"
+create_kind_clusters
 kind_import_images
 setup_custom_cni
 
