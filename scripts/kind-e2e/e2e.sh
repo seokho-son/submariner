@@ -67,15 +67,16 @@ function use_kube_context() {
     kubectl config use-context $1
 }
 
-function setup_custom_cni(){
-    for i in 2 3; do
+function deploy_weave_cni(){
+    for i in "$@"; do
         use_kube_context cluster$i
         if kubectl wait --for=condition=Ready pods -l name=weave-net -n kube-system --timeout=60s > /dev/null 2>&1; then
             echo "Weave already deployed cluster${i}."
             continue
         fi
+
         echo "Applying weave network in to cluster${i}..."
-        kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=${cluster_CIDRs[cluster${i}]}"
+        kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=v$version&env.IPALLOC_RANGE=${cluster_CIDRs[cluster${i}]}"
         echo "Waiting for weave-net pods to be ready cluster${i}..."
         kubectl wait --for=condition=Ready pods -l name=weave-net -n kube-system --timeout=300s
         echo "Waiting for core-dns deployment to be ready cluster${i}..."
@@ -283,8 +284,8 @@ if [[ $logging = true ]]; then
 fi
 
 create_kind_clusters
+deploy_weave_cni
 kind_import_images
-setup_custom_cni
 
 if [[ $kubefed = true ]]; then
     # FIXME: Kubefed deploys are broken (not because of this commit)
