@@ -7,11 +7,6 @@ fi
 
 ### Variables ###
 
-# FIXME: Use subctl info to collect these vs hard-coding
-# https://github.com/submariner-io/submariner-operator/tree/master/pkg/discovery/network
-declare -A cluster_CIDRs=( ["cluster1"]="10.4.0.0/14" ["cluster2"]="10.8.0.0/14" ["cluster3"]="10.12.0.0/14" )
-declare -A service_CIDRs=( ["cluster1"]="100.1.0.0/16" ["cluster2"]="100.2.0.0/16" ["cluster3"]="100.3.0.0/16" )
-
 kubecfgs_rel_dir=scripts/output/kube-config/container/
 kubecfgs_dir=${DAPPER_SOURCE}/$kubecfgs_rel_dir
 

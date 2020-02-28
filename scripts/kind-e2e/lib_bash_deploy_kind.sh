@@ -7,9 +7,6 @@ fi
 
 ### Variables ###
 
-declare -A cluster_CIDRs=( ["cluster1"]="10.244.0.0/16" ["cluster2"]="10.245.0.0/16" ["cluster3"]="10.246.0.0/16" )
-declare -A service_CIDRs=( ["cluster1"]="100.94.0.0/16" ["cluster2"]="100.95.0.0/16" ["cluster3"]="100.96.0.0/16" )
-
 kubecfgs_rel_dir=output/kind-config/dapper
 kubecfgs_dir=${DAPPER_SOURCE}/$kubecfgs_rel_dir
 
