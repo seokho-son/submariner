@@ -169,24 +169,16 @@ function del_subm_gateway_label() {
     kubectl label node $context-worker "submariner.io/gateway-" --overwrite
 }
 
-function deploy_netshoot() {
+function deploy_resource() {
     context=$1
+    resource_file=$2
+    resource_name=$(basename "$2" ".yaml")
     use_kube_context $context
     worker_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $context-worker | head -n 1)
-    echo Deploying netshoot on $context worker: ${worker_ip}
-    kubectl apply -f ${PRJ_ROOT}/scripts/kind-e2e/netshoot.yaml
-    echo Waiting for netshoot pods to be Ready on $context.
-    kubectl rollout status deploy/netshoot --timeout=120s
-}
-
-function deploy_nginx() {
-    context=$1
-    use_kube_context $context
-    worker_ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $context-worker | head -n 1)
-    echo Deploying nginx on $context worker: ${worker_ip}
-    kubectl apply -f ${PRJ_ROOT}/scripts/kind-e2e/nginx-demo.yaml
-    echo Waiting for nginx-demo deployment to be Ready on $context.
-    kubectl rollout status deploy/nginx-demo --timeout=120s
+    echo Deploying $resource_name on $context worker: ${worker_ip}
+    kubectl apply -f $resource_file
+    echo Waiting for $resource_name pods to be Ready on $context.
+    kubectl rollout status deploy/$resource_name --timeout=120s
 }
 
 function test_with_e2e_tests {
@@ -306,8 +298,8 @@ install_subm_all_clusters
 
 deploytool_postreqs
 
-deploy_netshoot cluster2
-deploy_nginx cluster3
+deploy_resource "cluster2" "${PRJ_ROOT}/scripts/kind-e2e/netshoot.yaml"
+deploy_resource "cluster3" "${PRJ_ROOT}/scripts/kind-e2e/nginx-demo.yaml"
 
 test_connection
 
