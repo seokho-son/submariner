@@ -44,3 +44,13 @@ RUN dnf -y distrosync && \
     curl -L https://github.com/dimaunx/armada/releases/download/v0.1.3/armada_0.1.3_linux_amd64.tar.gz | tar -xzf - && mv ./armada /usr/bin/armada && chmod a+x /usr/bin/armada && \
     GOFLAGS="" go get -v github.com/onsi/ginkgo/ginkgo && \
     GOFLAGS="" go get -v golang.org/x/tools/cmd/goimports
+
+# Copy CI deployment scripts into image to share with all submariner-io/* projects
+RUN mkdir -p /opt/kind-e2e
+COPY scripts/kind-e2e/e2e.sh /opt/kind-e2e/e2e.sh
+COPY scripts/kind-e2e/lib_armada_deploy_kind.sh /opt/kind-e2e/lib_armada_deploy_kind.sh
+COPY scripts/kind-e2e/lib_bash_deploy_kind.sh /opt/kind-e2e/lib_bash_deploy_kind.sh
+COPY scripts/kind-e2e/lib_operator_deploy_subm.sh /opt/kind-e2e/lib_operator_deploy_subm.sh
+COPY scripts/kind-e2e/lib_helm_deploy_subm.sh /opt/kind-e2e/lib_helm_deploy_subm.sh
+COPY scripts/kind-e2e/nginx-demo.yaml /opt/kind-e2e/nginx-demo.yaml
+COPY scripts/kind-e2e/netshoot.yaml /opt/kind-e2e/netshoot.yaml
