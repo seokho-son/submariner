@@ -22,7 +22,7 @@ shell:
 	./.dapper -m bind -s
 
 $(TARGETS): .dapper dapper-image vendor/modules.txt
-	DAPPER_ENV="OPERATOR_IMAGE"  ./.dapper -m bind $@ $(status) $(version) $(logging) $(kubefed) $(deploytool) $(armada) $(debug)
+	DAPPER_ENV="OPERATOR_IMAGE"  ./.dapper -m bind $@ -s $(status) -v $(version) -l $(logging) -k $(kubefed) -d $(deploytool) -a $(armada)
 
 vendor/modules.txt: .dapper go.mod
 	./.dapper -m bind vendor

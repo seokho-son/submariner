@@ -162,14 +162,55 @@ function cleanup {
     fi
 }
 
+function usage() {
+    cat << EOF
+Usage $0 [options]
+
+Deploy multicluster enviroments and run tests.
+
+OPTIONS:
+    -h Show this help message
+    -s <status>
+    -v <version>
+    -l <logging>
+    -k <kubefed>
+    -d <deploy>
+    -a <armada>
+EOF
+}
+
 ### Main ###
 
-status=$1
-version=$2
-logging=$3
-kubefed=$4
-deploy=$5
-armada=$6
+while getopts ":s:v:l:k:d:a:" opt; do
+    case "$opt" in
+        h)
+            # Help message
+            usage
+            exit $EX_OK
+            ;;
+        s)
+            status=${OPTARG}
+            ;;
+        v)
+            version=${OPTARG}
+            ;;
+        l)
+            logging=${OPTARG}
+            ;;
+        k)
+            kubefed=${OPTARG}
+            ;;
+        d)
+            deploy=${OPTARG}
+            ;;
+        a)
+            armada=${OPTARG}
+            ;;
+        *)
+            usage
+            exit 1
+    esac
+done
 
 echo Starting with status: $status, k8s_version: $version, logging: $logging, kubefed: $kubefed, deploy: $deploy, armada: $armada
 
