@@ -5,6 +5,8 @@ source $(git rev-parse --show-toplevel)/scripts/lib/debug_functions
 
 ### Variables ###
 
+THIS_DIR=$(dirname "$(readlink -f "$0")")
+
 ### Functions ###
 
 function print_logs() {
@@ -175,10 +177,10 @@ echo Starting with status: $status, k8s_version: $version, logging: $logging, ku
 
 if [[ $armada = true ]]; then
     echo Will deploy k8s clusters using armada abstracting kind
-    . kind-e2e/lib_armada_deploy_kind.sh
+    . $THIS_DIR/lib_armada_deploy_kind.sh
 else
     echo Will deploy k8s clusters using kind
-    . kind-e2e/lib_bash_deploy_kind.sh
+    . $THIS_DIR/lib_bash_deploy_kind.sh
 fi
 
 if [[ $status = clean ]]; then
@@ -195,10 +197,10 @@ fi
 
 if [[ $deploy = operator ]]; then
     echo Will deploy submariner using the operator
-    . kind-e2e/lib_operator_deploy_subm.sh
+    . $THIS_DIR/lib_operator_deploy_subm.sh
 elif [ "$deploy" = helm ]; then
     echo Will deploy submariner using helm
-    . kind-e2e/lib_helm_deploy_subm.sh
+    . $THIS_DIR/lib_helm_deploy_subm.sh
 else
     echo Unknown deploy method: $deploy
     cleanup
